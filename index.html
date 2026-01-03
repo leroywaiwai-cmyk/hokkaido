@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hokkaido Trip 2026</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & Libraries via Import Map for Performance -->
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+        "lucide-react": "https://esm.sh/lucide-react@0.292.0"
+      }
+    }
+    </script>
+    
+    <!-- Babel for JSX compilation in browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Custom scrollbar hiding */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        /* Mobile safe area */
+        .pb-safe {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+    </style>
+</head>
+<body class="bg-stone-200 text-stone-800">
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState, useMemo, useEffect } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { 
+            MapPin, Calendar, Clock, Utensils, Train, Hotel, Sun, CloudSnow, Cloud, 
+            Info, Phone, CreditCard, Plane, ShoppingBag, ChevronDown, ChevronUp, 
+            Navigation, BookOpen, Coffee, Camera, AlertTriangle, CheckCircle, 
+            Briefcase, Thermometer, Trash2, Map as MapIcon, ExternalLink, 
+            PieChart as PieChartIcon, Mountain
+        } from 'lucide-react';
+
+        // --- Data Structure ---
+        const tripData = {
+            flights: [
+                { type: 'Dep', code: 'HB008 (大灣區航空)', route: 'HKG → CTS', time: '09:15 - 15:00', date: '1/5 (一)', loc: 'HKG T1 7F Zone D', baggage: '20kg 托運' },
+                { type: 'Arr', code: 'HB009 (大灣區航空)', route: 'CTS → HKG', time: '16:00 - 21:15', date: '1/11 (日)', loc: 'CTS International 3F', baggage: '20kg 托運' }
+            ],
+            hotels: [
+                { 
+                    name: 'VIA INN PRIME SAPPORO-ODORI', 
+                    dates: '1/5 - 1/8 (3晚)', 
+                    loc: 'VIA INN PRIME SAPPORO-ODORI', 
+                    address: '札幌市中央区南1条西2丁目9-1',
+                    note: '大浴場「鈴蘭之湯」 / 19:00 Check-in',
+                    price: 'JPY 20,136'
+                },
+                { 
+                    name: '定山溪第一寶亭留 翠山亭', 
+                    dates: '1/8 - 1/9 (1晚)', 
+                    loc: 'Jozankei Daiichi Hotel Suizantei', 
+                    address: '札幌市南区定山渓温泉西3丁目105',
+                    note: '房型：展望風呂付和風房 (75㎡) / 一泊二食',
+                    price: 'JPY 68,200'
+                },
+                { 
+                    name: 'KOKO HOTEL Sapporo Susukino', 
+                    dates: '1/9 - 1/11 (2晚)', 
+                    loc: 'KOKO HOTEL Sapporo Susukino', 
+                    address: '札幌市中央区南7条西5丁目1-7',
+                    note: '房型：Deluxe Twin (26㎡) / 包早餐',
+                    price: 'JPY 28,192'
+                }
+            ],
+            contacts: [
+                { title: '日本緊急報警', num: '110' },
+                { title: '火警/救護車', num: '119' },
+                { title: '外交部旅外急難救助', num: '+81-80-1009-7179' } 
+            ],
+            days: [
+                {
+                    id: 1,
+                    date: '1/5 (一)',
+                    title: '札幌抵達日',
+                    weather: 'snow',
+                    temp: '-3°C / -8°C',
+                    highlight: '只拎今晚用品 (不 unpack)',
+                    summary: '移動日，保持體力，晚餐 Plan A/B/C。',
+                    events: [
+                        { time: '06:45', type: 'transport', title: '出發去機場', desc: '的士 → 香港國際機場 1 號客運大樓｜7 樓 D 區', loc: 'Hong Kong International Airport' },
+                        { time: '09:15', type: 'transport', title: '飛行 HB008', desc: '09:15 HKG → 15:00 CTS (新千歲)', loc: 'New Chitose Airport' },
+                        { time: '18:00', type: 'transport', title: '機場巴士抵達', desc: '落車點：南3条すすきの (Susukino)\n約 18:00–18:30 抵達', loc: 'Minami 3 Jo Susukino Bus Stop' },
+                        { time: '18:30', type: 'hotel', title: 'Check-in', desc: 'VIA INN PRIME SAPPORO-ODORI\n❌ 不 unpack\n✔ 只拎今晚＋明日用品', loc: 'VIA INN PRIME SAPPORO-ODORI' },
+                        { 
+                            time: '19:00', type: 'food', title: '晚餐 (19:00-20:00)', 
+                            desc: '步行 2–6 分鐘內，全在酒店附近。',
+                            plans: [
+                                { label: 'Plan A (最穩陣)', text: '松屋 札幌南3条店 (步行2-3分)。牛丼/定食。出餐快、熱、唔使等。長途機後首選。', loc: 'Matsuya Sapporo Minami 3-jo' },
+                                { label: 'Plan B (清淡)', text: 'なか卯 すすきの店 (步行3-4分)。親子丼、烏冬。比較暖胃、唔油。', loc: 'Nakau Susukino' },
+                                { label: 'Plan C (名物)', text: 'スープカレー GARAKU (步行5-6分)。湯咖喱。⚠️ 只限「冇排隊或排 ≤10 人」。', loc: 'Soup Curry GARAKU' }
+                            ],
+                            warning: '🚫 第一晚不建議成吉思汗/排隊壽司，留返精神好先食。',
+                            loc: 'Matsuya Sapporo Minami 3-jo' 
+                        },
+                        { time: '20:30', type: 'relax', title: '大浴場「鈴蘭之湯」', desc: '20:30-21:30 浸湯\n22:30 前上床休息', loc: 'VIA INN PRIME SAPPORO-ODORI' }
+                    ]
+                },
+                {
+                    id: 2,
+                    date: '1/6 (二)',
+                    title: '市內觀光＋燒肉＋藥妝',
+                    weather: 'cloudy',
+                    temp: '-2°C / -7°C',
+                    highlight: '燒肉 #18552 / 藥妝一次結帳',
+                    summary: '二条市場 → 北大 → 湯咖喱 → 燒肉 → 藥妝掃貨',
+                    events: [
+                        { time: '08:30', type: 'food', title: '早餐：魚屋の台所', desc: '別邸・二条市場のれん横丁店\n海鮮早餐，份量唔重', loc: 'Uoya no Daidokoro' },
+                        { time: '09:20', type: 'sight', title: '二条市場散步', desc: '09:20–10:00', loc: 'Nijo Market' },
+                        { time: '10:30', type: 'sight', title: '北海道大學', desc: '10:30–12:00\n校園雪景、平路多，唔攰', loc: 'Hokkaido University' },
+                        { 
+                            time: '12:30', type: 'food', title: '午餐：Suage+ 本店', 
+                            desc: '12:30–13:30 湯咖喱\n• 辣度：🌶️ 1–2\n• 飯量：🍚 少／半份\n• 配料：雞肉 或 野菜\n❌ 避免炸物、加飯 (唔影響晚餐)', 
+                            mustEat: '知床雞肉湯咖喱',
+                            loc: 'Suage+ Sapporo' 
+                        },
+                        { time: '13:45', type: 'sight', title: '舊道廳紅磚', desc: '13:45–14:15\n拍照即可，唔久留', loc: 'Former Hokkaido Government Office' },
+                        { time: '14:30', type: 'food', title: '下午甜點：雪印パーラー', desc: '札幌本店\n👉 呢段係休息，唔當正餐', loc: 'Snow Brand Parlor Sapporo' },
+                        { time: '15:45', type: 'sight', title: '札幌啤酒博物館', desc: '15:45–16:45\n參觀為主，飲酒可免', loc: 'Sapporo Beer Museum' },
+                        { time: '16:55', type: 'hotel', title: '回酒店準備', desc: '放低外套／袋\n⚠️ 帶護照＋錢包（夜晚藥妝要用）', loc: 'VIA INN PRIME SAPPORO-ODORI' },
+                        { 
+                            time: '17:15', type: 'food', title: '晚餐：焼肉徳寿 K-Place', 
+                            desc: '17:15–18:45 (預約時段)', 
+                            reservation: '預約編號：#18552\n預約姓名：Leroy Lei\n座位：Table Seat',
+                            warning: '⚠️ 食到 7–8 成飽即可，夜晚仲要行',
+                            loc: 'Yakiniku Tokuju K-Place' 
+                        },
+                        { 
+                            time: '19:00', type: 'shopping', title: '藥妝主戰場', 
+                            desc: '地點：ダイコクドラッグ (Daikoku) 札幌南2条店\n只結帳一次，用免稅＋額外折扣券\n¥5,000 → 13% OFF\n¥30,000 → 15% OFF\n¥50,000 → 18% OFF (MAX)', 
+                            loc: 'Daikoku Drug Sapporo Minami 2-jo' 
+                        },
+                        { time: '20:30', type: 'hotel', title: '回酒店整理', desc: '卸重、整理戰利品、飲水、休息\n22:30 前上床 (翌日小樽)', loc: 'VIA INN PRIME SAPPORO-ODORI' }
+                    ]
+                },
+                {
+                    id: 3,
+                    date: '1/7 (三)',
+                    title: '小樽＋天狗山一日遊',
+                    weather: 'snow',
+                    temp: '-4°C / -9°C',
+                    highlight: '天狗山纜車 / 三角市場 / 北一硝子',
+                    summary: '上山睇雪景 → 落山食海鮮 → 運河散步 → 煤油燈咖啡 → 洋食晚餐',
+                    events: [
+                        { time: '08:30', type: 'food', title: '早餐：コメダ珈琲店', desc: '狸小路二丁目店\n咖啡＋厚多士／簡單三文治\n👉 唔好太重，留肚食海鮮＋之後活動\n食完即刻返酒店執嘢出發', loc: 'Komeda Coffee Tanukikoji' },
+                        { time: '09:45', type: 'transport', title: 'JR 札幌 → 小樽', desc: '09:45–10:45 (車程 45 mins)\nJR 函館本線\n👉 10:45–11:00 抵達小樽', loc: 'Sapporo Station' },
+                        { 
+                            time: '11:05', type: 'sight', title: '天狗山 (重點已鎖)', 
+                            desc: '交通：小樽站前巴士總站 (9/10號巴士)\n落車：天狗山ロープウェイ (終點)\n行程：纜車來回 + 觀景影相 (1.5-2小時)',
+                            warning: '山頂風大，帽＋手套必須。能見度差就縮短停留。', 
+                            loc: 'Otaru Tenguyama Ropeway' 
+                        },
+                        { 
+                            time: '13:45', type: 'food', title: '午餐：澤崎水産3号店', 
+                            desc: '13:45–15:00 @ 三角市場\n海鮮丼 (食 7–8 成飽)\n流轉快，唔使等好耐\n👉 上完山先食海鮮，體力同胃口都啱位', 
+                            mustEat: '特選海鮮丼',
+                            loc: 'Sankaku Market Otaru' 
+                        },
+                        { time: '15:10', type: 'sight', title: '小樽運河 (短停)', desc: '15:10–16:45 (含堺町通)\n15-20 mins 運河影雪景', loc: 'Otaru Canal' },
+                        { 
+                            time: '15:30', type: 'shopping', title: '堺町通慢行', 
+                            desc: '六花亭 (外帶最穩) / 北菓楼\n小樽オルゴール堂 / 北一硝子\n👉 原則：每間 ≤15 分鐘｜唔排隊｜凍就即走', 
+                            loc: 'Sakaimachi Street' 
+                        },
+                        { time: '16:45', type: 'coffee', title: '下午茶：北一ホール', desc: '16:45–17:30\n煤油燈大廳，冬天氣氛感極高\n👉 完全取代 LeTAO 排隊', loc: 'Kitaichi Hall' },
+                        { time: '17:45', type: 'food', title: '晚餐：Otaru Bine', desc: '17:45–19:00\n洋食＋葡萄酒\n作為小樽日收尾非常理性', loc: 'Otaru Bine' },
+                        { time: '19:15', type: 'transport', title: 'JR 返札幌', desc: '19:15–20:15\n返酒店浸鈴蘭之湯', loc: 'Otaru Station' },
+                        { time: '20:30', type: 'relax', title: 'Pack 行李', desc: '為 1/8 定山溪轉宿做準備\n22:30 前上床', loc: 'VIA INN PRIME SAPPORO-ODORI' }
+                    ]
+                },
+                {
+                    id: 4,
+                    date: '1/8 (四)',
+                    title: '札幌 → 定山溪溫泉',
+                    weather: 'snow',
+                    temp: '-5°C / -10°C',
+                    highlight: '送迎巴士 11:30 / 房內風呂 / 懷石料理',
+                    summary: '轉宿日：早餐 → 巴士 → 溫泉旅館放鬆',
+                    events: [
+                        { time: '08:30', type: 'relax', title: '梳洗／收拾', desc: '最後整理行李\n著好今日轉宿用嘅保暖衣物', loc: 'VIA INN PRIME SAPPORO-ODORI' },
+                        { time: '09:30', type: 'food', title: '早餐：コメダ珈琲店', desc: '狸小路二丁目店\n厚多士／三文治＋熱咖啡\n定位：轉宿日最安全早餐', loc: 'Komeda Coffee Tanukikoji' },
+                        { time: '10:30', type: 'hotel', title: '退房 Checkout', desc: 'VIA INN PRIME 退房\n行李跟身：30吋×1、27.6吋×1、21吋×1', loc: 'VIA INN PRIME SAPPORO-ODORI' },
+                        { time: '10:50', type: 'transport', title: '的士 → 巴士集合點', desc: '目的地：地下鐵 大通站 出口 1\n大通西 5 丁目・昭和ビル前\n11:00 前要到達', loc: 'Odori Nishi 5-chome' },
+                        { time: '11:30', type: 'transport', title: '送迎巴士「湯けむり号」', desc: '準時出發 (①)\n行李放車底，車上休息\n約 12:40 抵達定山溪', loc: 'Odori Nishi 5-chome' },
+                        { time: '12:45', type: 'sight', title: 'Check-in 前散步', desc: '只揀 1 個：定山源泉公園 或 二見吊橋\n原則：唔行多、唔攰、唔趕', loc: 'Jozankei Gensen Park' },
+                        { time: '15:00', type: 'hotel', title: '入住 翠山亭', desc: '定山溪第一寶亭留 翠山亭\n房型：75㎡ 展望風呂付和風房\n入房、放行李、換浴衣', loc: 'Jozankei Daiichi Hotel Suizantei' },
+                        { time: '15:30', type: 'relax', title: '溫泉 (第一回合)', desc: '房內展望風呂 (強烈建議) 或 大浴場', loc: 'Jozankei Daiichi Hotel Suizantei' },
+                        { time: '18:00', type: 'food', title: '晚餐：一泊二食', desc: '6,000 円コース\n主菜：ソイの調理法 → お造り（刺身）\n冬季北海道高級白身魚', loc: 'Jozankei Daiichi Hotel Suizantei' },
+                        { time: '20:00', type: 'relax', title: '溫泉 (第二回合)', desc: '再浸一次，房間休息\n22:30 前上床聽溪水聲瞓', loc: 'Jozankei Daiichi Hotel Suizantei' }
+                    ]
+                },
+                {
+                    id: 5,
+                    date: '1/9 (五)',
+                    title: '定山溪 → 札幌 (拉麵日)',
+                    weather: 'cloudy',
+                    temp: '-2°C / -6°C',
+                    highlight: '物產館 / 13:00 巴士 / 一粒庵',
+                    summary: '晨浴 → 手信 → 回札幌 → 便利店輕食 → 一粒庵拉麵',
+                    events: [
+                        { time: '07:30', type: 'relax', title: '晨浴 + 早餐', desc: '房內展望風呂 (最後一浸)\n08:30 旅館日式早餐 (食 7 成飽)', loc: 'Jozankei Daiichi Hotel Suizantei' },
+                        { time: '11:00', type: 'hotel', title: 'Check-out', desc: '行李交俾旅館 (稍後上車)', loc: 'Jozankei Daiichi Hotel Suizantei' },
+                        { time: '11:05', type: 'shopping', title: '定山溪物産館', desc: '中央店 (買手信)', loc: 'Jozankei Bussankan' },
+                        { time: '11:35', type: 'food', title: '甜品：J.glacée', desc: 'ふる川 果日 (清爽雪葩／雪糕)', loc: 'J.glacee Jozankei' },
+                        { time: '12:30', type: 'transport', title: '等巴士', desc: '回到旅館門口，準備 13:00 上車', loc: 'Jozankei Daiichi Hotel Suizantei' },
+                        { time: '13:00', type: 'transport', title: '回程巴士', desc: '湯けむり号 (②) 出發\n14:10–14:20 抵達札幌 (大通一帶)', loc: 'Jozankei Daiichi Hotel Suizantei' },
+                        { time: '14:20', type: 'transport', title: '的士 → KOKO HOTEL', desc: '雪地＋三件行李，的士最穩\n14:40 Check-in／寄存行李', loc: 'KOKO HOTEL Sapporo Susukino' },
+                        { 
+                            time: '15:30', type: 'food', title: '遲午餐 (輕食)', 
+                            desc: '地點：KOKO HOTEL 附近便利店/超市\n買飯糰、沙律、熱飲\n👉 原則：真・墊底餐｜唔坐餐廳｜唔拖時間', 
+                            mustEat: '便利店飯糰',
+                            loc: 'KOKO HOTEL Sapporo Susukino' 
+                        },
+                        { time: '16:15', type: 'shopping', title: '短段 Shopping', desc: '薄野／大通地下街\n少量藥妝補買、Donki quick look', loc: 'Sapporo Underground Pedestrian Space' },
+                        { 
+                            time: '18:30', type: 'food', title: '晚餐：一粒庵', 
+                            desc: 'ラーメン札幌一粒庵\n札幌味噌拉麵\n小提示：18:00–18:15 到，等位較少', 
+                            mustEat: '札幌味噌拉麵',
+                            loc: 'Ramen Sapporo Ichiryuan' 
+                        },
+                        { time: '19:45', type: 'hotel', title: '回酒店休息', desc: '洗衫／整理行李\n為 1/10 shopping 日做準備', loc: 'KOKO HOTEL Sapporo Susukino' }
+                    ]
+                },
+                {
+                    id: 6,
+                    date: '1/10 (六)',
+                    title: 'Shopping + 担担麵',
+                    weather: 'snow',
+                    temp: '-3°C / -8°C',
+                    highlight: 'Donki 10:30 / 根室花丸 / 175°DENO',
+                    summary: 'Donki → 壽司 → Loft → 甜點 → 担担麵 → Packing',
+                    events: [
+                        { time: '08:30', type: 'food', title: '早餐 (酒店)', desc: '食到 7 成飽 (留位食壽司)', loc: 'KOKO HOTEL Sapporo Susukino' },
+                        { 
+                            time: '10:30', type: 'shopping', title: 'Donki 掃貨', 
+                            desc: 'ドン・キホーテ 札幌狸小路本店\n策略：先買藥妝大件、零食、重物\n行完可先返酒店放低 (近)', 
+                            loc: 'Don Quijote Sapporo Tanukikoji' 
+                        },
+                        { 
+                            time: '12:30', type: 'food', title: '午餐：根室花丸', 
+                            desc: 'COCONO SUSUKINO店\n飯可少量、避免炸物 (晚餐拉麵)', 
+                            loc: 'COCONO SUSUKINO' 
+                        },
+                        { time: '14:30', type: 'food', title: '下午茶：きのとや', desc: '大通公園店・KINOTOYA cafe\n芝士撻／小件蛋糕＋熱飲', loc: 'KINOTOYA Odori Park' },
+                        { time: '15:30', type: 'shopping', title: 'Loft 輕購物', desc: '文具、旅行小物、扁平雜貨\n👉 只買 輕＋易 pack', loc: 'Sapporo Loft' },
+                        { time: '16:45', type: 'hotel', title: '放低戰利品', desc: '返 KOKO HOTEL 放低嘢\n👉 晚餐前唔揹重物', loc: 'KOKO HOTEL Sapporo Susukino' },
+                        { 
+                            time: '18:30', type: 'food', title: '晚餐：175°DENO', 
+                            desc: '175°DENO担担麵\n辣度：2–3 (有香味唔爆)\n麻度：普通 / 麵：原味\n👉 熱、快、暖身，食完即返酒店 Packing', 
+                            mustEat: '担担麵',
+                            loc: '175°DENO Ramen Lounge' 
+                        },
+                        { 
+                            time: '19:30', type: 'hotel', title: 'Packing (最後一晚)', 
+                            desc: '行李 80–90% pack 完\n分好：寄艙／手提\n檢查液體、重量', 
+                            loc: 'KOKO HOTEL Sapporo Susukino' 
+                        }
+                    ]
+                },
+                {
+                    id: 7,
+                    date: '1/11 (日)',
+                    title: '返程日',
+                    weather: 'sun',
+                    temp: '-4°C / -8°C',
+                    highlight: '國內線午餐 (GARAKU) / 11:00 Checkout',
+                    summary: 'Checkout → JR → 機場國內線午餐 → 國際線 Check-in',
+                    events: [
+                        { time: '08:30', type: 'food', title: '早餐 (酒店)', desc: '食到 6–7 成飽\n留位去機場食湯咖喱', loc: 'KOKO HOTEL Sapporo Susukino' },
+                        { time: '09:30', type: 'hotel', title: '最後整理', desc: '液體／膏狀物 → 托運\n護照、登機文件 ready', loc: 'KOKO HOTEL Sapporo Susukino' },
+                        { time: '11:00', type: 'hotel', title: 'Check-out', desc: '拎齊三件行李，直接出發 (唔寄存)', loc: 'KOKO HOTEL Sapporo Susukino' },
+                        { time: '11:00', type: 'transport', title: '的士 → JR 札幌站', desc: '冬天＋多行李，穩定優先', loc: 'Sapporo Station' },
+                        { time: '12:00', type: 'transport', title: 'JR Rapid Airport', desc: '12:00–12:37 (指定席)\n避開自由席行李風險', loc: 'Sapporo Station' },
+                        { time: '12:37', type: 'transport', title: '抵達新千歲 (國內線)', desc: '國內線到達層', loc: 'New Chitose Airport Domestic Terminal' },
+                        { 
+                            time: '12:45', type: 'food', title: '午餐：GARAKU 機場店', 
+                            desc: '地點：國內線航廈\n辣度：1–2 / 飯量：少\n❌ 避免炸物／加飯\n👉 食完先去國際線，動線最順', 
+                            mustEat: '雞肉/野菜湯咖喱',
+                            loc: 'GARAKU New Chitose Airport' 
+                        },
+                        { time: '13:40', type: 'transport', title: '國際線 Check-in', desc: '3F 國際線出發\nCheck-in＋托運 (13:00–15:00)', loc: 'New Chitose Airport International Terminal' },
+                        { time: '14:10', type: 'shopping', title: '行機場', desc: '免稅／手信／休息', loc: 'New Chitose Airport' },
+                        { time: '16:00', type: 'transport', title: '起飛 ✈️', desc: 'HB009 返港', loc: 'New Chitose Airport' }
+                    ]
+                }
+            ]
+        };
+
+        const WeatherIcon = ({ type }) => {
+            if (type === 'sun') return <Sun className="w-5 h-5 text-amber-500" />;
+            if (type === 'snow') return <CloudSnow className="w-5 h-5 text-blue-300" />;
+            return <Cloud className="w-5 h-5 text-gray-400" />;
+        };
+
+        const CategoryIcon = ({ type }) => {
+            switch (type) {
+                case 'food': return <Utensils className="w-4 h-4" />;
+                case 'transport': return <Train className="w-4 h-4" />;
+                case 'hotel': return <Hotel className="w-4 h-4" />;
+                case 'sight': return <Camera className="w-4 h-4" />;
+                case 'shopping': return <ShoppingBag className="w-4 h-4" />;
+                case 'coffee': return <Coffee className="w-4 h-4" />;
+                case 'relax': return <Thermometer className="w-4 h-4" />;
+                default: return <Clock className="w-4 h-4" />;
+            }
+        };
+
+        const SectionHeader = ({ icon, title }) => (
+            <h3 className="text-xs font-bold text-stone-400 uppercase tracking-wider mb-3 flex items-center gap-2 mt-6 first:mt-0">
+                {icon} {title}
+            </h3>
+        );
+
+        const CATEGORY_CONFIG = {
+            food: { label: '飲食', color: '#fb923c', icon: Utensils },
+            shopping: { label: '購物', color: '#f472b6', icon: ShoppingBag },
+            hotel: { label: '住宿', color: '#a78bfa', icon: Hotel },
+            transport: { label: '交通', color: '#60a5fa', icon: Train },
+            flight: { label: '機票', color: '#38bdf8', icon: Plane },
+            other: { label: '其他', color: '#9ca3af', icon: Clock },
+        };
+
+        const dailyRoutes = {
+            1: ["New Chitose Airport", "VIA INN PRIME SAPPORO-ODORI", "Matsuya Sapporo Minami 3-jo"],
+            2: ["VIA INN PRIME SAPPORO-ODORI", "Nijo Market", "Hokkaido University", "Suage+ Sapporo", "Sapporo Beer Museum", "Yakiniku Tokuju K-Place", "Daikoku Drug Sapporo Minami 2-jo"],
+            3: ["Komeda Coffee Tanukikoji", "Otaru Station", "Otaru Tenguyama Ropeway", "Sankaku Market Otaru", "Otaru Canal", "Kitaichi Hall", "Otaru Bine", "Sapporo Station"],
+            4: ["VIA INN PRIME SAPPORO-ODORI", "Odori Nishi 5-chome", "Jozankei Daiichi Hotel Suizantei"],
+            5: ["Jozankei Daiichi Hotel Suizantei", "Jozankei Bussankan", "KOKO HOTEL Sapporo Susukino", "Ramen Sapporo Ichiryuan"],
+            6: ["KOKO HOTEL Sapporo Susukino", "Don Quijote Sapporo Tanukikoji", "COCONO SUSUKINO", "Sapporo Loft", "175°DENO Ramen Lounge"],
+            7: ["KOKO HOTEL Sapporo Susukino", "Sapporo Station", "GARAKU New Chitose Airport", "New Chitose Airport International Terminal"]
+        };
+
+        function HokkaidoTripAppFull() {
+            const [activeTab, setActiveTab] = useState('itinerary');
+            const [openDay, setOpenDay] = useState(1); 
+            const [mapLocation, setMapLocation] = useState("Sapporo Station"); 
+            
+            const EXCHANGE_RATE = 0.050; 
+
+            const [expenses, setExpenses] = useState([
+                { id: 1, title: 'Day 1 晚餐預算', amount: 3000, cat: 'food' },
+                { id: 2, title: 'Day 2 藥妝預算', amount: 50000, cat: 'shopping' },
+                { id: 3, title: 'Day 5 一粒庵拉麵', amount: 2500, cat: 'food' }, 
+                { id: 4, title: 'Day 6 175°DENO', amount: 2500, cat: 'food' },
+                { id: 5, title: '住宿: VIA INN PRIME', amount: 20136, cat: 'hotel' },
+                { id: 6, title: '住宿: 翠山亭 (一泊二食)', amount: 68200, cat: 'hotel' },
+                { id: 7, title: '住宿: KOKO HOTEL', amount: 28192, cat: 'hotel' },
+            ]);
+            const [newExpTitle, setNewExpTitle] = useState('');
+            const [newExpAmount, setNewExpAmount] = useState('');
+            const [newExpCategory, setNewExpCategory] = useState('food'); 
+            const [newExpCurrency, setNewExpCurrency] = useState('JPY');
+
+            const handleAddExpense = () => {
+                if(!newExpTitle || !newExpAmount) return;
+                
+                let finalAmount = parseInt(newExpAmount);
+                if (newExpCurrency === 'HKD') {
+                    finalAmount = Math.round(finalAmount / EXCHANGE_RATE);
+                }
+
+                setExpenses([...expenses, { 
+                    id: Date.now(), 
+                    title: newExpTitle, 
+                    amount: finalAmount, 
+                    cat: newExpCategory 
+                }]);
+                setNewExpTitle('');
+                setNewExpAmount('');
+            };
+
+            const handleDeleteExpense = (id) => {
+                setExpenses(expenses.filter(ex => ex.id !== id));
+            };
+
+            const totalBudget = 300000; 
+            const currentSpent = expenses.reduce((acc, curr) => acc + curr.amount, 0);
+            const formatHKD = (yen) => `HK$${Math.round(yen * EXCHANGE_RATE).toLocaleString()}`;
+
+            const chartData = useMemo(() => {
+                const totals = {};
+                Object.keys(CATEGORY_CONFIG).forEach(key => totals[key] = 0);
+                expenses.forEach(ex => {
+                    const cat = ex.cat || 'other';
+                    if (totals[cat] !== undefined) totals[cat] += ex.amount;
+                    else totals['other'] += ex.amount;
+                });
+
+                let cumulativePercent = 0;
+                
+                return Object.entries(totals)
+                    .filter(([_, amount]) => amount > 0)
+                    .map(([key, amount]) => ({
+                        key,
+                        amount,
+                        ...CATEGORY_CONFIG[key],
+                        percent: (amount / currentSpent) * 100
+                    }))
+                    .sort((a, b) => b.amount - a.amount)
+                    .map((cat) => {
+                        const startPercent = cumulativePercent;
+                        const endPercent = cumulativePercent + cat.percent;
+                        const midPercent = (startPercent + endPercent) / 2;
+                        cumulativePercent = endPercent;
+                        return { ...cat, midPercent };
+                    });
+            }, [expenses, currentSpent]);
+
+            const pieGradient = useMemo(() => {
+                if (currentSpent === 0) return 'conic-gradient(#e5e7eb 0% 100%)';
+                let gradientStr = 'conic-gradient(';
+                let currentPercent = 0;
+                chartData.forEach((cat, index) => {
+                    const start = currentPercent;
+                    const end = currentPercent + cat.percent;
+                    gradientStr += `${cat.color} ${start}% ${end}%${index < chartData.length - 1 ? ', ' : ''}`;
+                    currentPercent = end;
+                });
+                gradientStr += ')';
+                return gradientStr;
+            }, [chartData, currentSpent]);
+
+            const openMap = (loc) => {
+                if (!loc) return;
+                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc)}`);
+            };
+
+            const handleLocClick = (loc) => {
+                setMapLocation(loc);
+                const mapContainer = document.getElementById('map-preview-container');
+                if (mapContainer) mapContainer.scrollIntoView({ behavior: 'smooth' });
+            };
+
+            return (
+                <div className="flex justify-center min-h-screen bg-stone-200 font-sans text-stone-800">
+                    <div className="w-full max-w-md bg-stone-50 shadow-2xl overflow-hidden flex flex-col h-[100vh] sm:h-[95vh] sm:rounded-3xl sm:my-4 border-stone-300 sm:border">
+                        
+                        {/* Header */}
+                        <header className="bg-white border-b border-stone-200 p-4 sticky top-0 z-30 shadow-sm">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h1 className="text-lg font-black tracking-widest text-stone-800">HOKKAIDO</h1>
+                                    <p className="text-[10px] text-stone-500 font-bold uppercase tracking-wider">2026.01.05 - 01.11 | Full Itinerary</p>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-[10px] text-stone-400 font-bold uppercase">Budget Used</div>
+                                    <div className="text-sm font-bold font-mono text-stone-700">¥{currentSpent.toLocaleString()}</div>
+                                </div>
+                            </div>
+                        </header>
+
+                        {/* Main Content */}
+                        <main className="flex-1 overflow-y-auto pb-24 scrollbar-hide bg-stone-100/50">
+                            
+                            {/* --- ITINERARY TAB --- */}
+                            {activeTab === 'itinerary' && (
+                                <div className="space-y-3 p-3">
+                                    {tripData.days.map((day) => (
+                                        <div key={day.id} className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
+                                            <div 
+                                                onClick={() => setOpenDay(openDay === day.id ? null : day.id)}
+                                                className={`p-4 flex items-center justify-between cursor-pointer transition-colors ${openDay === day.id ? 'bg-stone-50' : 'bg-white'}`}
+                                            >
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`flex flex-col items-center justify-center w-12 h-12 rounded-lg border ${openDay === day.id ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-800 border-stone-200'}`}>
+                                                        <span className="text-xs font-bold uppercase">{day.date.split(' ')[1].replace(/[()]/g,'')}</span>
+                                                        <span className="text-lg font-black">{day.date.split('/')[1].split(' ')[0]}</span>
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="font-bold text-stone-800">{day.title}</h3>
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <WeatherIcon type={day.weather} />
+                                                            <span className="text-xs text-stone-500 font-mono">{day.temp}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {openDay === day.id ? <ChevronUp size={20} className="text-stone-400"/> : <ChevronDown size={20} className="text-stone-300"/>}
+                                            </div>
+
+                                            {openDay !== day.id && (
+                                                <div className="px-4 pb-3 pt-0">
+                                                    <div className="text-xs text-stone-500 line-clamp-1 pl-1 border-l-2 border-stone-300">
+                                                        {day.summary}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {openDay === day.id && (
+                                                <div className="bg-stone-50 border-t border-stone-100">
+                                                    <div className="bg-blue-50/50 p-3 text-xs text-blue-800 font-medium border-b border-blue-100 flex gap-2 items-start">
+                                                        <Info size={14} className="shrink-0 mt-0.5" />
+                                                        {day.highlight}
+                                                    </div>
+
+                                                    <div className="p-4 relative">
+                                                        <div className="absolute left-[27px] top-4 bottom-4 w-0.5 bg-stone-200"></div>
+
+                                                        {day.events.map((event, idx) => (
+                                                            <div key={idx} className="relative pl-8 mb-6 last:mb-0">
+                                                                <div className={`absolute left-0 top-1 w-6 h-6 rounded-full border-2 border-white shadow-sm flex items-center justify-center z-10 ${
+                                                                    event.type === 'food' ? 'bg-orange-100 text-orange-600' : 
+                                                                    event.type === 'transport' ? 'bg-blue-100 text-blue-600' : 
+                                                                    event.type === 'hotel' ? 'bg-purple-100 text-purple-600' :
+                                                                    'bg-stone-200 text-stone-600'
+                                                                }`}>
+                                                                    <CategoryIcon type={event.type} />
+                                                                </div>
+
+                                                                <div className="bg-white p-3.5 rounded-lg border border-stone-200 shadow-sm">
+                                                                    <div className="flex justify-between items-start mb-2">
+                                                                        <span className="font-mono text-sm font-black text-stone-800 bg-stone-100 px-1.5 py-0.5 rounded">
+                                                                            {event.time}
+                                                                        </span>
+                                                                        <button 
+                                                                            onClick={(e) => { e.stopPropagation(); openMap(event.loc); }}
+                                                                            className="text-stone-300 hover:text-blue-500 active:text-blue-600 transition-colors p-1 -mr-1 -mt-1"
+                                                                        >
+                                                                            <Navigation size={16} />
+                                                                        </button>
+                                                                    </div>
+
+                                                                    <h4 className="font-bold text-base text-stone-900 mb-1">{event.title}</h4>
+                                                                    <div className="text-sm text-stone-600 leading-relaxed whitespace-pre-line mb-2">
+                                                                        {event.desc}
+                                                                    </div>
+
+                                                                    {event.plans && (
+                                                                        <div className="space-y-2 mt-2 mb-2">
+                                                                            {event.plans.map((p, i) => (
+                                                                                <div key={i} className="text-xs bg-stone-50 p-2 rounded border border-stone-100">
+                                                                                    <span className="font-bold text-stone-700 block mb-0.5">{p.label}</span>
+                                                                                    <span className="text-stone-500">{p.text}</span>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
+
+                                                                    {event.reservation && (
+                                                                        <div className="mt-3 bg-red-50 text-red-700 text-xs p-2 rounded border border-red-100 font-mono whitespace-pre-line select-all">
+                                                                            {event.reservation}
+                                                                        </div>
+                                                                    )}
+
+                                                                    <div className="space-y-1.5 mt-2">
+                                                                        {event.warning && (
+                                                                            <div className="flex gap-1.5 items-start text-xs text-amber-700 font-medium">
+                                                                                <AlertTriangle size={12} className="mt-0.5 shrink-0" />
+                                                                                <span>{event.warning}</span>
+                                                                            </div>
+                                                                        )}
+                                                                        {event.mustEat && (
+                                                                            <div className="flex gap-1.5 items-start text-xs text-orange-600 font-bold">
+                                                                                <Utensils size={12} className="mt-0.5 shrink-0" />
+                                                                                <span>必吃：{event.mustEat}</span>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <div className="h-8"></div>
+                                </div>
+                            )}
+
+                            {/* --- INFO TAB --- */}
+                            {activeTab === 'info' && (
+                                <div className="p-4 space-y-8">
+                                    <section>
+                                        <SectionHeader icon={<Plane size={16}/>} title="航班資料" />
+                                        <div className="space-y-3">
+                                            {tripData.flights.map((f, i) => (
+                                                <div key={i} className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm relative">
+                                                    <div className={`absolute top-0 left-0 bottom-0 w-1 ${f.type === 'Dep' ? 'bg-blue-500' : 'bg-green-500'}`} />
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <span className="text-xs font-bold text-stone-400 uppercase">{f.type === 'Dep' ? '去程 (Departure)' : '回程 (Return)'}</span>
+                                                        <span className="text-xs font-mono font-bold text-stone-600">{f.date}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <span className="text-lg font-black text-stone-800">{f.code}</span>
+                                                        <span className="text-sm font-mono text-stone-600">{f.time}</span>
+                                                    </div>
+                                                    <p className="text-sm text-stone-500 mb-2">{f.route}</p>
+                                                    <div className="flex gap-2 text-xs text-stone-500 bg-stone-50 p-2 rounded">
+                                                        <Briefcase size={12} className="mt-0.5"/> {f.loc} | {f.baggage}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </section>
+
+                                    <section>
+                                        <SectionHeader icon={<Hotel size={16}/>} title="住宿詳情" />
+                                        <div className="space-y-4">
+                                            {tripData.hotels.map((h, i) => (
+                                                <div key={i} className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+                                                    <div className="bg-stone-50 p-3 border-b border-stone-100 flex justify-between items-center">
+                                                        <span className="text-xs font-bold text-stone-500">{h.dates}</span>
+                                                        <span className="text-xs font-mono text-stone-400">{h.price}</span>
+                                                    </div>
+                                                    <div className="p-4">
+                                                        <div className="flex justify-between items-start mb-1">
+                                                            <h4 className="font-bold text-stone-800 text-sm leading-tight pr-2">{h.name}</h4>
+                                                            <button onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(h.name)}`)}><Navigation size={16} className="text-stone-300 hover:text-blue-500"/></button>
+                                                        </div>
+                                                        <p className="text-xs text-stone-500 mb-3">{h.address}</p>
+                                                        <div className="text-xs bg-yellow-50 text-yellow-800 p-2 rounded border border-yellow-100">
+                                                            {h.note}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </section>
+
+                                    <section>
+                                        <SectionHeader icon={<Phone size={16}/>} title="緊急聯絡" />
+                                        <div className="grid grid-cols-1 gap-3">
+                                            {tripData.contacts.map((c, i) => (
+                                                <div key={i} className="flex justify-between items-center bg-red-50 p-3 rounded-lg border border-red-100">
+                                                    <span className="text-xs font-bold text-red-400">{c.title}</span>
+                                                    <span className="text-lg font-mono font-bold text-red-700">{c.num}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </section>
+
+                                    <section>
+                                        <SectionHeader icon={<Briefcase size={16}/>} title="行李策略" />
+                                        <div className="bg-white p-4 rounded-xl border border-stone-200 text-sm text-stone-600 space-y-2">
+                                            <p>• 30 吋：LOJEL Cubo Fit (前開)</p>
+                                            <p>• 27.6 吋：RIMOWA Check-In M (對開)</p>
+                                            <p>• 21 吋：LOJEL Cubo Small (前開)</p>
+                                            <div className="mt-2 pt-2 border-t border-stone-100 text-xs text-stone-400">
+                                                * 1/8 轉宿日：三件行李全部跟身
+                                            </div>
+                                        </div>
+                                    </section>
+                                </div>
+                            )}
+
+                            {/* --- BUDGET TAB --- */}
+                            {activeTab === 'budget' && (
+                                <div className="p-4 space-y-6">
+                                    {/* 1. Remaining Budget Card */}
+                                    <div className="bg-stone-800 text-stone-50 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+                                        <div className="relative z-10">
+                                            <p className="text-[10px] text-stone-400 uppercase tracking-widest mb-1">Remaining Budget</p>
+                                            <div className="flex items-baseline gap-2">
+                                                <div className="text-3xl font-mono font-bold">¥{(totalBudget - currentSpent).toLocaleString()}</div>
+                                                <div className="text-sm font-mono text-stone-400">({formatHKD(totalBudget - currentSpent)})</div>
+                                            </div>
+                                            
+                                            <div className="w-full bg-stone-700 h-1 rounded-full mt-4 overflow-hidden">
+                                                <div className="bg-white h-full" style={{ width: `${(currentSpent / totalBudget) * 100}%` }}></div>
+                                            </div>
+                                            <div className="flex justify-between mt-2 text-[10px] text-stone-400 font-mono">
+                                                <div className="flex flex-col">
+                                                    <span>USED: ¥{currentSpent.toLocaleString()}</span>
+                                                    <span className="text-stone-500">({formatHKD(currentSpent)})</span>
+                                                </div>
+                                                <div className="flex flex-col text-right">
+                                                    <span>TOTAL: ¥{totalBudget.toLocaleString()}</span>
+                                                    <span className="text-stone-500">({formatHKD(totalBudget)})</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 2. Expenses Analysis (Pie Chart) */}
+                                    {currentSpent > 0 && (
+                                        <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm">
+                                            <h3 className="text-xs font-bold text-stone-400 uppercase mb-4 flex items-center gap-2">
+                                                <PieChartIcon size={14}/> 消費分佈
+                                            </h3>
+                                            
+                                            <div className="flex flex-col sm:flex-row items-center gap-6">
+                                                <div className="relative w-36 h-36 mx-auto sm:mx-0 shrink-0">
+                                                    <div 
+                                                        className="w-full h-full rounded-full shadow-inner border-4 border-white"
+                                                        style={{ background: pieGradient }}
+                                                    />
+                                                    {chartData.map((cat) => {
+                                                        if (cat.percent < 8) return null;
+                                                        const rotation = cat.midPercent * 3.6;
+                                                        return (
+                                                            <div
+                                                                key={cat.key}
+                                                                className="absolute top-0 left-0 w-full h-full flex items-center justify-center pointer-events-none"
+                                                                style={{ transform: `rotate(${rotation}deg)` }}
+                                                            >
+                                                                <div 
+                                                                    className="flex items-center justify-center drop-shadow-md"
+                                                                    style={{ transform: `translateY(-42px) rotate(-${rotation}deg)` }}
+                                                                >
+                                                                    <cat.icon size={16} className="text-white" strokeWidth={2.5} />
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                                
+                                                <div className="flex-1 w-full space-y-3">
+                                                    {chartData.map((cat) => (
+                                                        <div key={cat.key} className="flex justify-between items-center border-b border-stone-50 pb-2 last:border-0 last:pb-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: `${cat.color}15` }}>
+                                                                    <cat.icon size={14} style={{ color: cat.color }} />
+                                                                </div>
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-xs font-bold text-stone-700 leading-tight">{cat.label}</span>
+                                                                    <span className="text-[10px] text-stone-400 font-mono leading-tight">{Math.round(cat.percent)}%</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <div className="text-xs font-mono font-bold text-stone-800">¥{cat.amount.toLocaleString()}</div>
+                                                                <div className="text-[10px] font-mono text-stone-400">{formatHKD(cat.amount)}</div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* 3. Add Expense Form */}
+                                    <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm">
+                                        <h3 className="text-xs font-bold text-stone-400 uppercase mb-3">Add Expense</h3>
+                                        <div className="space-y-2 mb-3">
+                                            <div className="flex gap-2">
+                                                <div className="relative w-[35%]">
+                                                    <select 
+                                                        className="w-full appearance-none bg-stone-50 border border-stone-200 rounded px-2 py-2 text-sm focus:outline-none focus:border-stone-400"
+                                                        value={newExpCategory}
+                                                        onChange={(e) => setNewExpCategory(e.target.value)}
+                                                    >
+                                                        {Object.entries(CATEGORY_CONFIG).map(([key, config]) => (
+                                                            <option key={key} value={key}>{config.label}</option>
+                                                        ))}
+                                                    </select>
+                                                    <ChevronDown size={14} className="absolute right-2 top-3 text-stone-400 pointer-events-none"/>
+                                                </div>
+                                                <div className="flex-1 flex gap-1">
+                                                    <select 
+                                                        value={newExpCurrency} 
+                                                        onChange={(e) => setNewExpCurrency(e.target.value)}
+                                                        className="bg-stone-50 border border-stone-200 rounded px-1 py-2 text-sm font-mono focus:outline-none focus:border-stone-400"
+                                                    >
+                                                        <option value="JPY">¥</option>
+                                                        <option value="HKD">HK$</option>
+                                                    </select>
+                                                    <input 
+                                                        type="number" 
+                                                        placeholder={newExpCurrency === 'JPY' ? "0" : "0"} 
+                                                        className="flex-1 bg-stone-50 border border-stone-200 rounded px-2 py-2 text-sm focus:outline-none focus:border-stone-400 font-mono"
+                                                        value={newExpAmount}
+                                                        onChange={(e) => setNewExpAmount(e.target.value)}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <input 
+                                                type="text" 
+                                                placeholder="Item Name (e.g. Dinner)" 
+                                                className="w-full bg-stone-50 border border-stone-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-stone-400"
+                                                value={newExpTitle}
+                                                onChange={(e) => setNewExpTitle(e.target.value)}
+                                            />
+                                        </div>
+                                        <button 
+                                            onClick={handleAddExpense}
+                                            className="w-full bg-stone-800 text-white text-xs font-bold py-3 rounded hover:bg-stone-700 active:scale-95 transition-all flex justify-center items-center gap-2"
+                                        >
+                                            <CreditCard size={14}/> ADD RECORD
+                                        </button>
+                                    </div>
+
+                                    {/* 4. Transaction List */}
+                                    <div className="space-y-2">
+                                        <h3 className="text-xs font-bold text-stone-400 uppercase pl-1">Recent Transactions</h3>
+                                        {expenses.slice().reverse().map((ex) => {
+                                            const catConfig = CATEGORY_CONFIG[ex.cat] || CATEGORY_CONFIG.other;
+                                            return (
+                                                <div key={ex.id} className="bg-white p-3 rounded-lg border border-stone-100 flex justify-between items-center shadow-sm group">
+                                                    <div className="flex items-center gap-3">
+                                                        <button 
+                                                            onClick={() => handleDeleteExpense(ex.id)}
+                                                            className="text-stone-300 hover:text-red-500 transition-colors p-1 -ml-1"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                        <div className="w-8 h-8 rounded-full bg-stone-50 flex items-center justify-center text-stone-400 border border-stone-100">
+                                                            <catConfig.icon size={14} style={{ color: catConfig.color }}/>
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-sm font-medium text-stone-700">{ex.title}</div>
+                                                            <div className="text-[10px] text-stone-400" style={{ color: catConfig.color }}>{catConfig.label}</div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <div className="font-mono text-sm font-bold text-stone-900">¥{ex.amount.toLocaleString()}</div>
+                                                        <div className="font-mono text-[10px] text-stone-400">{formatHKD(ex.amount)}</div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* --- MAP TAB --- */}
+                            {activeTab === 'map' && (
+                                <div className="flex flex-col h-full bg-stone-50">
+                                    <div id="map-preview-container" className="h-[300px] w-full shrink-0 border-b border-stone-200 bg-stone-100 relative shadow-sm">
+                                        <iframe 
+                                            width="100%" 
+                                            height="100%" 
+                                            frameBorder="0" 
+                                            src={`https://maps.google.com/maps?q=${encodeURIComponent(mapLocation)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                                            className="grayscale-[0.2]"
+                                            title="Map View"
+                                        ></iframe>
+                                        <div className="absolute bottom-2 right-2 bg-white/90 backdrop-blur px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm border border-stone-200 flex items-center gap-2">
+                                            <MapPin size={12} className="text-red-500" />
+                                            {mapLocation}
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-stone-100/30">
+                                        <div className="flex items-center justify-between">
+                                            <h2 className="text-lg font-bold text-stone-800 flex items-center gap-2">
+                                                <MapIcon size={20} /> 地點總覽
+                                            </h2>
+                                            <span className="text-[10px] text-stone-400">點擊地點以預覽</span>
+                                        </div>
+
+                                        {tripData.days.map((day) => (
+                                            <div key={day.id} className="relative">
+                                                <div className="sticky top-0 z-10 bg-stone-200/90 backdrop-blur-sm py-1.5 px-3 rounded-md mb-2 flex justify-between items-center">
+                                                    <span className="text-xs font-bold text-stone-600">{day.date}</span>
+                                                    <span className="text-[10px] text-stone-400">{day.title}</span>
+                                                </div>
+
+                                                <div className="space-y-2 pl-2 border-l-2 border-stone-200 ml-2">
+                                                    {day.events.map((ev, idx) => (
+                                                        <div 
+                                                            key={idx} 
+                                                            onClick={() => {
+                                                                setMapLocation(ev.loc);
+                                                                document.getElementById('map-preview-container').scrollIntoView({ behavior: 'smooth' });
+                                                            }}
+                                                            className={`bg-white p-3 rounded-lg border shadow-sm flex justify-between items-center cursor-pointer transition-all active:scale-95 ${mapLocation === ev.loc ? 'border-blue-500 ring-1 ring-blue-500/20' : 'border-stone-100 hover:border-blue-300'}`}
+                                                        >
+                                                            <div className="flex items-center gap-3 overflow-hidden">
+                                                                <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${mapLocation === ev.loc ? 'bg-blue-100 text-blue-600' : 'bg-stone-50 text-stone-400'}`}>
+                                                                    <CategoryIcon type={ev.type} />
+                                                                </div>
+                                                                <div className="truncate">
+                                                                    <div className="text-sm font-bold text-stone-800 truncate pr-2">{ev.title.split('：')[0]}</div>
+                                                                    <div className="text-[10px] text-stone-400 truncate">{ev.loc}</div>
+                                                                </div>
+                                                            </div>
+                                                            <button 
+                                                                onClick={(e) => { 
+                                                                    e.stopPropagation(); 
+                                                                    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.loc)}`); 
+                                                                }}
+                                                                className="shrink-0 p-2 text-stone-300 hover:text-blue-500"
+                                                            >
+                                                                <ExternalLink size={16} />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <div className="h-8"></div>
+                                    </div>
+                                </div>
+                            )}
+
+                        </main>
+
+                        {/* Navigation Bar */}
+                        <nav className="bg-white border-t border-stone-200 pb-safe pt-1 px-4 flex justify-between items-center h-[75px] z-40">
+                            <button 
+                                onClick={() => setActiveTab('itinerary')}
+                                className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all w-16 ${activeTab === 'itinerary' ? 'bg-stone-100 text-stone-900' : 'text-stone-400'}`}
+                            >
+                                <Calendar size={22} strokeWidth={activeTab === 'itinerary' ? 2.5 : 2} />
+                                <span className="text-[10px] font-bold">Trip</span>
+                            </button>
+                            
+                            <button 
+                                onClick={() => setActiveTab('info')}
+                                className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all w-16 ${activeTab === 'info' ? 'bg-stone-100 text-stone-900' : 'text-stone-400'}`}
+                            >
+                                <BookOpen size={22} strokeWidth={activeTab === 'info' ? 2.5 : 2} />
+                                <span className="text-[10px] font-bold">Info</span>
+                            </button>
+
+                            <button 
+                                onClick={() => setActiveTab('budget')}
+                                className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all w-16 ${activeTab === 'budget' ? 'bg-stone-100 text-stone-900' : 'text-stone-400'}`}
+                            >
+                                <CreditCard size={22} strokeWidth={activeTab === 'budget' ? 2.5 : 2} />
+                                <span className="text-[10px] font-bold">Budget</span>
+                            </button>
+
+                            <button 
+                                onClick={() => setActiveTab('map')}
+                                className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all w-16 ${activeTab === 'map' ? 'bg-stone-100 text-stone-900' : 'text-stone-400'}`}
+                            >
+                                <MapIcon size={22} strokeWidth={activeTab === 'map' ? 2.5 : 2} />
+                                <span className="text-[10px] font-bold">Map</span>
+                            </button>
+                        </nav>
+
+                    </div>
+                </div>
+            );
+        }
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<HokkaidoTripAppFull />);
+    </script>
+</body>
+</html>
